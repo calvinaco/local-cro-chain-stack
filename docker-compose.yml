@@ -1,0 +1,44 @@
+version: "3.8"
+services:
+  crypto-org-chain-validator0:
+    image: local-cro-chain/crypto-org-chain
+    ports:
+      - "26651:26657"
+      - "1311:1317"
+      - "9091:9090"
+      - "26661:26660"
+    command: ["start"]
+    volumes:
+      - ./runtime/crypto-org-chain/validator0:/app
+  crypto-org-chain-validator1:
+    image: local-cro-chain/crypto-org-chain
+    ports:
+      - "26652:26657"
+      - "1312:1317"
+      - "9092:9090"
+      - "26662:26660"
+    command: ["start"]
+    volumes:
+      - ./runtime/crypto-org-chain/validator1:/app
+  cronos-validator0:
+    image: local-cro-chain/cronos
+    ports:
+      - "26653:26657"
+      - "1313:1317"
+      - "9093:9090"
+      - "26663:26660"
+      - "8543:8543"
+    command: ["start"]
+    volumes:
+      - ./runtime/cronos/validator0:/app
+  cronos-validator1:
+    image: local-cro-chain/cronos
+    ports:
+      - "26654:26657"
+      - "1314:1317"
+      - "9094:9090"
+      - "26664:26660"
+      - "8544:8544"
+    command: ["start"]
+    volumes:
+      - ./runtime/cronos/validator1:/app
