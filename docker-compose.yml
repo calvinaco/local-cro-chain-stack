@@ -2,6 +2,7 @@ version: '3.8'
 services:
   crypto-org-chain-validator0:
     image: local-cro-chain/crypto-org-chain
+    container_name: local-cro-chain-crypto-org-chain-validator0
     ports:
       - "26650:26657"
       - "1310:1317"
@@ -12,6 +13,7 @@ services:
       - ./runtime/crypto-org-chain/validator0:/app
   crypto-org-chain-validator1:
     image: local-cro-chain/crypto-org-chain
+    container_name: local-cro-chain-crypto-org-chain-validator1
     ports:
       - "26651:26657"
       - "1311:1317"
@@ -22,6 +24,7 @@ services:
       - ./runtime/crypto-org-chain/validator1:/app
   cronos-validator0:
     image: local-cro-chain/cronos
+    container_name: local-cro-chain-cronos-validator0
     ports:
       - "26652:26657"
       - "1312:1317"
@@ -33,6 +36,7 @@ services:
       - ./runtime/cronos/validator0:/app
   cronos-validator1:
     image: local-cro-chain/cronos
+    container_name: local-cro-chain-cronos-validator1
     ports:
       - "26653:26657"
       - "1313:1317"

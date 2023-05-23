@@ -30,6 +30,9 @@ TOOLBOX_DOCKER_IMAGE := local-cro-chain/toolbox
 CRYPTO_ORG_CHAIN_DOCKER_IMAGE := local-cro-chain/crypto-org-chain 
 CRONOS_DOCKER_IMAGE := local-cro-chain/cronos
 
+ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+$(eval $(ARGS):;@:)
+
 .PHONY: all
 all: build-image download-binary init prepare generate-docker-compose
 
@@ -169,6 +172,7 @@ generate-docker-compose:
 	@i=0; while [[ $$i -lt $(CRYPTO_ORG_CHAIN_VALIDATOR_SIZE) ]]; do \
 		echo "  crypto-org-chain-validator$$i:" >> docker-compose.yml; \
 		echo "    image: local-cro-chain/crypto-org-chain" >> docker-compose.yml; \
+		echo "    container_name: local-cro-chain-crypto-org-chain-validator$$i" >> docker-compose.yml; \
 		echo "    ports:" >> docker-compose.yml; \
 		echo "      - \"$$((26650 + $$i)):26657\"" >> docker-compose.yml; \
 		echo "      - \"$$((1310 + $$i)):1317\"" >> docker-compose.yml; \
@@ -182,6 +186,7 @@ generate-docker-compose:
 	@i=0; while [[ $$i -lt $(CRONOS_VALIDATOR_SIZE) ]]; do \
 		echo "  cronos-validator$$i:" >> docker-compose.yml; \
 		echo "    image: local-cro-chain/cronos" >> docker-compose.yml; \
+		echo "    container_name: local-cro-chain-cronos-validator$$i" >> docker-compose.yml; \
 		echo "    ports:" >> docker-compose.yml; \
 		echo "      - \"$$((26650 + $(CRYPTO_ORG_CHAIN_VALIDATOR_SIZE) + $$i)):26657\"" >> docker-compose.yml; \
 		echo "      - \"$$((1310 + $(CRYPTO_ORG_CHAIN_VALIDATOR_SIZE) + $$i)):1317\"" >> docker-compose.yml; \
@@ -209,6 +214,14 @@ stop:
 
 .PHONY: restart
 restart: stop start
+
+.PHONY: chain-maind-easy-tx
+chain-maind-easy-tx:
+	docker run -it --network=host \
+		-v ./assets/crypto-org-chain:/app \
+		local-cro-chain/crypto-org-chain tx \
+		--gas-prices=0.025basecro --gas=auto  --gas-adjustment=1.5 --keyring-backend=test --node=http://127.0.0.1:26650 \
+		$(filter-out $@,$(MAKECMDGOALS))
 
 .PHONY: tendermint-unsafe-reset-all
 tendermint-unsafe-reset-all:

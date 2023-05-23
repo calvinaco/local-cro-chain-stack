@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 IFS=$'\n\t'
-set +x
 
 echoerr() {
-    echo "❌ $@" 1>&2;
+    echo "$@" 1>&2;
     echo 1>&2;
     helpFunction 1>&2;
     exit 1;
