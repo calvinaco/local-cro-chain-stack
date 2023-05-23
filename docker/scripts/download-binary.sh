@@ -114,4 +114,5 @@ tar -zxvf $FILE > /dev/null 2>&1 || echoerr "Failed to extract binary"
 if [[ -z "./bin" ]]; then 
     echoerr "Missing binary from extracted files"
 fi
-rm $FILE CHANGELOG.md LICENSE README.md > /dev/null 2>&1
+echo "✅ $BLOCKCHAIN $NETWORK v$VERSION binary is ready"
+rm -f $FILE CHANGELOG.md LICENSE README.md

@@ -1,4 +1,5 @@
 assets/
 runtime/
+*.bak
 
 .DS_Store

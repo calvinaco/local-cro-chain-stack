@@ -6,6 +6,9 @@ CRONOS_VERSION := 1.0.5
 MNEMONICS := "march tourist bless menu tenant element bid say pluck film fever tourist planet recycle hundred toe assist budget obvious citizen memory genius double float"
 # Skip SSL verification. 1 to skip
 INSECURE_SKIP_SSL_VERIFY := 1
+# TODO: Dynamic validator size
+CRYPTO_ORG_CHAIN_VALIDATOR_SIZE := 5
+CRONOS_VALIDATOR_SIZE := 5
 
 # Constants
 DOCKER = $(shell command -v docker)
@@ -16,22 +19,19 @@ CRONOS_CHAIN_ID := cronoslocal_65536-1
 CRYPTO_ORG_CHAIN_MIN_GAS_PRICES := 0.025basecro
 CRONOS_MIN_GAS_PRICES := 5000000000000000000000basecro
 
-# TODO: Dynamic validator size
-
 ASSETS_ROOT := ./assets
 CRYPTO_ORG_CHAIN_ASSETS := $(ASSETS_ROOT)/crypto-org-chain
 CRONOS_ASSETS := $(ASSETS_ROOT)/cronos
 RUNTIME_ROOT := ./runtime
 CRYPTO_ORG_CHAIN_RUNTIME := $(RUNTIME_ROOT)/crypto-org-chain
 CRONOS_RUNTIME := $(RUNTIME_ROOT)/cronos
-CRYPTO_ORG_CHAIN_VALIDATOR0_HOME := $(CRYPTO_ORG_CHAIN_RUNTIME)/validator0
-CRYPTO_ORG_CHAIN_VALIDATOR1_HOME := $(CRYPTO_ORG_CHAIN_RUNTIME)/validator1
-CRONOS_VALIDATOR0_HOME := $(CRONOS_RUNTIME)/validator0
-CRONOS_VALIDATOR1_HOME := $(CRONOS_RUNTIME)/validator1
 
 TOOLBOX_DOCKER_IMAGE := local-cro-chain/toolbox
 CRYPTO_ORG_CHAIN_DOCKER_IMAGE := local-cro-chain/crypto-org-chain 
 CRONOS_DOCKER_IMAGE := local-cro-chain/cronos
+
+.PHONY: all
+all: build-image download-binary init prepare generate-docker-compose
 
 .PHONY: has-docker
 has-docker:
@@ -41,10 +41,19 @@ ifndef DOCKER
 endif
 
 .PHONY: build-image
-build-image: has-docker
+build-image: build-toolbox-image build-chain-image
+
+.PHONY: build-toolbox-image
+build-toolbox-image: has-docker 
 	@docker build -t $(TOOLBOX_DOCKER_IMAGE) -f ./docker/toolbox.Dockerfile ./docker
+	@echo "✅ Toolbox docker image built"
+
+.PHONY: build-chain-image
+build-chain-image:
 	@docker build -t $(CRYPTO_ORG_CHAIN_DOCKER_IMAGE) -f ./crypto-org-chain/Dockerfile .
+	@echo "✅ Crypto.org Chain docker image built"
 	@docker build -t $(CRONOS_DOCKER_IMAGE) -f ./cronos/Dockerfile .
+	@echo "✅ Cronos docker image built"
 
 .PHONY: download-binary
 download-binary:
@@ -73,10 +82,7 @@ download-binary:
 build-binary: has-docker
 
 .PHONY: init
-init: init-docker init-home init-account init-config
-
-.PHONY: init-docker
-init-docker: has-docker
+init: init-home init-account init-config
 
 .PHONY: init-home
 init-home:
@@ -85,21 +91,31 @@ init-home:
 
 .PHONY: init-account
 init-account: has-docker
-	@echo "Importing Crypto.org Chain validator account";
-	@yes $(MNEMONICS) | docker run -i --rm -v $(CRYPTO_ORG_CHAIN_ASSETS):/app $(CRYPTO_ORG_CHAIN_DOCKER_IMAGE) keys add validator0 --recover --keyring-backend=test > /dev/null
-	@yes $(MNEMONICS) | docker run -i --rm -v $(CRYPTO_ORG_CHAIN_ASSETS):/app $(CRYPTO_ORG_CHAIN_DOCKER_IMAGE) keys add validator1 --index=1 --recover --keyring-backend=test > /dev/null
-	@i=2; while [[ $$i -lt 10 ]]; do \
-		echo "Importing Crypto.org Chain account$$i"; \
-		yes $(MNEMONICS) | docker run -i --rm -v $(CRYPTO_ORG_CHAIN_ASSETS):/app $(CRYPTO_ORG_CHAIN_DOCKER_IMAGE) keys add account$$i --index=$$i --recover --keyring-backend=test > /dev/null; \
+	@i=0; while [[ $$i -lt $(CRYPTO_ORG_CHAIN_VALIDATOR_SIZE) ]]; do \
+		yes $(MNEMONICS) | docker run -i --rm -v $(CRYPTO_ORG_CHAIN_ASSETS):/app $(CRYPTO_ORG_CHAIN_DOCKER_IMAGE) keys add validator$$i --index=$$i --recover --keyring-backend=test; \
+		echo "✅ Imported Crypto.org Chain validator$$i"; \
 		((i = i + 1)); \
 	done
 
-	@echo "Importing Cronos validator account";
-	@yes $(MNEMONICS) | docker run -i --rm -v $(CRONOS_ASSETS):/app $(CRONOS_DOCKER_IMAGE) keys add validator0 --recover --keyring-backend=test > /dev/null
-	@yes $(MNEMONICS) | docker run -i --rm -v $(CRONOS_ASSETS):/app $(CRONOS_DOCKER_IMAGE) keys add validator1 --index=1 --recover --keyring-backend=test > /dev/null
-	@i=2; while [[ $$i -lt 10 ]]; do \
-		echo "Importing Cronos account$$i"; \
-		yes $(MNEMONICS) | docker run -i --rm -v $(CRONOS_ASSETS):/app $(CRONOS_DOCKER_IMAGE) keys add account$$i --index=$$i --recover --keyring-backend=test > /dev/null; \
+	@i=$(CRYPTO_ORG_CHAIN_VALIDATOR_SIZE); \
+	((l = $(CRYPTO_ORG_CHAIN_VALIDATOR_SIZE) + 10)); \
+	while [[ $$i -lt $$l ]]; do \
+		yes $(MNEMONICS) | docker run -i --rm -v $(CRYPTO_ORG_CHAIN_ASSETS):/app $(CRYPTO_ORG_CHAIN_DOCKER_IMAGE) keys add account$$i --index=$$i --recover --keyring-backend=test; \
+		echo "✅ Imported Crypto.org Chain account$$i"; \
+		((i = i + 1)); \
+	done
+
+	@i=0; while [[ $$i -lt $(CRONOS_VALIDATOR_SIZE) ]]; do \
+		yes $(MNEMONICS) | docker run -i --rm -v $(CRONOS_ASSETS):/app $(CRONOS_DOCKER_IMAGE) keys add validator$$i --index=$$i --recover --keyring-backend=test; \
+		echo "✅ Imported Cronos validator$$i"; \
+		((i = i + 1)); \
+	done
+
+	@i=$(CRONOS_VALIDATOR_SIZE); \
+	((l = $(CRONOS_VALIDATOR_SIZE) + 10)); \
+	while [[ $$i -lt $$l ]]; do \
+		yes $(MNEMONICS) | docker run -i --rm -v $(CRONOS_ASSETS):/app $(CRONOS_DOCKER_IMAGE) keys add account$$i --index=$$i --recover --keyring-backend=test; \
+		echo "✅ Imported Cronos account$$i"; \
 		((i = i + 1)); \
 	done
 
@@ -111,8 +127,11 @@ list-account:
 init-config:
 	@cp $(CRYPTO_ORG_CHAIN_ASSETS)/home/config/app.toml $(CRYPTO_ORG_CHAIN_ASSETS)/home/config/app.toml.bak
 	@sed -i '' "s#^minimum-gas-prices *=.*#minimum-gas-prices = \"$(CRYPTO_ORG_CHAIN_MIN_GAS_PRICES)\"#" ${CRYPTO_ORG_CHAIN_ASSETS}/home/config/app.toml
+	@echo "✅ Crypto.org Chain config initialized"; \
+
 	@cp $(CRONOS_ASSETS)/home/config/app.toml $(CRONOS_ASSETS)/home/config/app.toml.bak
 	@sed -i '' "s#^minimum-gas-prices *=.*#minimum-gas-prices = \"$(CRONOS_MIN_GAS_PRICES)\"#" ${CRONOS_ASSETS}/home/config/app.toml
+	@echo "✅ Cronos config initialized"; \
 
 .PHONY: unsafe-clear-account
 unsafe-clear-account:
@@ -120,22 +139,87 @@ unsafe-clear-account:
 	@rm -rf $(CRONOS_ASSETS)/home/keyring-test
 
 .PHONY: prepare
-prepare: prepare-crypto-org-chain prepare-cronos
+prepare: prepare-crypto-org-chain prepare-cronos genereate-docker-compose
 
 .PHONY: prepare-crypto-org-chain
 prepare-crypto-org-chain:
-	@echo "Crypto.org Chain"
-	@./scripts/prepare-crypto-org-chain.sh --chain-id $(CRYPTO_ORG_CHAIN_ID) $(CRYPTO_ORG_CHAIN_DOCKER_IMAGE) $(CRYPTO_ORG_CHAIN_ASSETS) $(CRYPTO_ORG_CHAIN_RUNTIME)
+	@./scripts/prepare-crypto-org-chain.sh \
+		--chain-id $(CRYPTO_ORG_CHAIN_ID) \
+		--validator-count $(CRYPTO_ORG_CHAIN_VALIDATOR_SIZE) \
+		$(CRYPTO_ORG_CHAIN_DOCKER_IMAGE) $(CRYPTO_ORG_CHAIN_ASSETS) $(CRYPTO_ORG_CHAIN_RUNTIME)
 	@echo "✅ Crypto.org Chain validators prepared"
 
 .PHONY: prepare-cronos
 prepare-cronos:
-	@echo "Cronos"
-	@./scripts/prepare-cronos.sh --chain-id $(CRONOS_CHAIN_ID) $(CRONOS_DOCKER_IMAGE) $(CRONOS_ASSETS) $(CRONOS_RUNTIME)
+	@./scripts/prepare-cronos.sh \
+		--chain-id $(CRONOS_CHAIN_ID) \
+		--validator-count $(CRONOS_VALIDATOR_SIZE) \
+		$(CRONOS_DOCKER_IMAGE) $(CRONOS_ASSETS) $(CRONOS_RUNTIME)
 	@echo "✅ Cronos validators prepared"
+
+.PHONY: genereate-docker-compose
+generate-docker-compose:
+	@cp docker-compose.yml docker-compose.yml.bak
+	@echo "version: '3.8'" > docker-compose.yml
+	@echo "services:" >> docker-compose.yml
+	@i=0; while [[ $$i -lt $(CRYPTO_ORG_CHAIN_VALIDATOR_SIZE) ]]; do \
+		echo "  crypto-org-chain-validator$$i:" >> docker-compose.yml; \
+		echo "    image: local-cro-chain/crypto-org-chain" >> docker-compose.yml; \
+		echo "    ports:" >> docker-compose.yml; \
+		echo "      - \"$$((26660 + $$i)):26657\"" >> docker-compose.yml; \
+		echo "      - \"$$((1310 + $$i)):1317\"" >> docker-compose.yml; \
+		echo "      - \"$$((9090 + $$i)):9090\"" >> docker-compose.yml; \
+		echo "      - \"$$((8090 + $$i)):26660\"" >> docker-compose.yml; \
+		echo "    command: [\"start\"]" >> docker-compose.yml; \
+		echo "    volumes:" >> docker-compose.yml; \
+		echo "      - ./runtime/crypto-org-chain/validator$$i:/app" >> docker-compose.yml; \
+		((i = i + 1)); \
+	done
+	@i=0; while [[ $$i -lt $(CRONOS_VALIDATOR_SIZE) ]]; do \
+		echo "  cronos-validator$$i:" >> docker-compose.yml; \
+		echo "    image: local-cro-chain/cronos" >> docker-compose.yml; \
+		echo "    ports:" >> docker-compose.yml; \
+		echo "      - \"$$((26660 + $(CRYPTO_ORG_CHAIN_VALIDATOR_SIZE) + $$i)):26657\"" >> docker-compose.yml; \
+		echo "      - \"$$((1310 + $(CRYPTO_ORG_CHAIN_VALIDATOR_SIZE) + $$i)):1317\"" >> docker-compose.yml; \
+		echo "      - \"$$((9090 + $(CRYPTO_ORG_CHAIN_VALIDATOR_SIZE) +  $$i)):9090\"" >> docker-compose.yml; \
+		echo "      - \"$$((8090 + $(CRYPTO_ORG_CHAIN_VALIDATOR_SIZE) + $$i)):26660\"" >> docker-compose.yml; \
+		echo "      - \"$$((8540 + $(CRYPTO_ORG_CHAIN_VALIDATOR_SIZE) + $$i)):8545\"" >> docker-compose.yml; \
+		echo "    command: [\"start\"]" >> docker-compose.yml; \
+		echo "    volumes:" >> docker-compose.yml; \
+		echo "      - ./runtime/cronos/validator$$i:/app" >> docker-compose.yml; \
+		((i = i + 1)); \
+	done
+	@echo "✅ docker-compose.yml generated"
 
 .PHONY: start
 start:
+	@docker-compose up
+
+.PHONY: stop
+stop:
+	@docker-compose down
+
+.PHONY: restart
+restart: stop start
+
+.PHONY: tendermint-unsafe-reset-all
+tendermint-unsafe-reset-all:
+	@i=0; while [[ $$i -lt $(CRYPTO_ORG_CHAIN_VALIDATOR_SIZE) ]]; do \
+		HOME=$(CRYPTO_ORG_CHAIN_RUNTIME)/validator$$i; \
+		echo $$HOME; \
+		docker run -v $$HOME:/app $(CRYPTO_ORG_CHAIN_DOCKER_IMAGE) tendermint unsafe-reset-all; \
+		echo "✅ Crypto.org Chain validator$$i reset successfully"; \
+		((i = i + 1)); \
+	done
+	@i=0; while [[ $$i -lt $(CRONOS_VALIDATOR_SIZE) ]]; do \
+		HOME=$(CRONOS_RUNTIME)/validator$$i; \
+		docker run -v $$HOME:/app $(CRONOS_DOCKER_IMAGE) tendermint unsafe-reset-all; \
+		echo "✅ Cronos validator$$i reset successfully"; \
+		((i = i + 1)); \
+	done
+
+.PHONY: unsafe-clear-all
+unsafe-clear-all: unsafe-clear-assets unsafe-clear-runtime
 
 .PHONY: unsafe-clear-assets
 unsafe-clear-assets:
@@ -144,10 +228,3 @@ unsafe-clear-assets:
 .PHONY: unsafe-clear-runtime
 unsafe-clear-runtime:
 	@rm -rf runtime
-
-.PHONY: tendermint-unsafe-reset-all
-tendermint-unsafe-reset-all:
-	@docker run -v $(CRYPTO_ORG_CHAIN_VALIDATOR0_HOME):/app $(CRYPTO_ORG_CHAIN_DOCKER_IMAGE) tendermint unsafe-reset-all > /dev/null
-	@docker run -v $(CRYPTO_ORG_CHAIN_VALIDATOR1_HOME):/app $(CRYPTO_ORG_CHAIN_DOCKER_IMAGE) tendermint unsafe-reset-all > /dev/null
-	@docker run -v $(CRONOS_VALIDATOR0_HOME):/app $(CRONOS_DOCKER_IMAGE) tendermint unsafe-reset-all > /dev/null
-	@docker run -v $(CRONOS_VALIDATOR1_HOME):/app $(CRONOS_DOCKER_IMAGE) tendermint unsafe-reset-all > /dev/null

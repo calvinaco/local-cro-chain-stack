@@ -3,7 +3,7 @@ set -euo pipefail
 IFS=$'\n\t'
 
 echoerr() {
-    echo "$@" 1>&2;
+    echo "❌ $@" 1>&2;
     echo 1>&2;
     helpFunction 1>&2;
     exit 1;
@@ -109,13 +109,13 @@ BANK_BALANCES=$(echo $KEYS_LIST | jq --arg min_basecro $MIN_BASECRO --arg basecr
 
 ACCOUNT_EXISTS=$(cat ${ASSETS_ROOTDIR}/home/config/genesis.json | jq --arg lookup_address $(echo $KEYS_LIST | jq -r '.[0].address') '.app_state.bank.balances[] | select( .address | index($lookup_address))' | wc -l | xargs)
 if [[ $ACCOUNT_EXISTS -gt 0 ]]; then
-    echo "✅ Genesis file already initialized. Skipped."
+    echo "✅ Crpyto.org Chain genesis file already initialized. Skipped."
 else
     cp ${ASSETS_ROOTDIR}/home/config/genesis.json ${ASSETS_ROOTDIR}/home/config/genesis.json.bak
     # write output tempfile because output redirection may empty the folder before jq runs
     cat ${ASSETS_ROOTDIR}/home/config/genesis.json | jq --argjson auth_accounts "$AUTH_ACCOUNTS" --argjson bank_balances "$BANK_BALANCES" '.app_state.auth.accounts += $auth_accounts | .app_state.bank.balances += $bank_balances' > ${ASSETS_ROOTDIR}/home/config/genesis.json.tmp
     mv ${ASSETS_ROOTDIR}/home/config/genesis.json.tmp ${ASSETS_ROOTDIR}/home/config/genesis.json
-    echo "✅ Genesis file initialized."
+    echo "✅ Crpyto.org Chain genesis file initialized."
 fi
 
 mkdir -p $OUTPUT_FOLDER
@@ -139,21 +139,20 @@ i=0; while [[ $i -lt $VALIDATOR_COUNT ]]; do
     TEMPDIR=$(mktemp -d)
     docker run -v ${ASSETS_ROOTDIR}/chain:/app/chain \
         -v ${TEMPDIR}:/app/home \
-        $DOCKER_IMAGE init node --chain-id=$CHAIN_ID > /dev/null 2>&1
+        $DOCKER_IMAGE init node --chain-id=$CHAIN_ID
     cp $TEMPDIR/config/node_key.json $HOME/config
     cp $TEMPDIR/config/priv_validator_key.json $HOME/config
-
-    echo "✅ Validator$i home folder created"
+    echo "✅ Crpyto.org Chain validator$i home folder created"
 
     docker run -v ${ASSETS_ROOTDIR}/chain:/app/chain \
         -v ${HOME}:/app/home \
         $DOCKER_IMAGE gentx $KEY_NAME $VALIDATOR_INITIAL_DELEGATION \
-        --keyring-backend=test --chain-id=$CHAIN_ID --moniker=$MONIKER > /dev/null 2>&1 
+        --keyring-backend=test --chain-id=$CHAIN_ID --moniker=$MONIKER
     GEN_TX=$(docker run -v ${ASSETS_ROOTDIR}/chain:/app/chain \
         -v ${HOME}:/app/home \
         $DOCKER_IMAGE collect-gentxs 2>&1 | jq '.app_message.genutil.gen_txs[0]')
     GEN_TXS=$(echo $GEN_TXS | jq --argjson gen_tx "$GEN_TX" '. += [$gen_tx]')
-    echo "✅ Validator$i create validator transaction generated"
+    echo "✅ Crpyto.org Chain validator$i create validator transaction generated"
 
     NODE_ID=$(docker run -v ${ASSETS_ROOTDIR}/chain:/app/chain \
         -v ${HOME}:/app/home \
@@ -178,6 +177,6 @@ i=0; while [[ $i -lt $VALIDATOR_COUNT ]]; do
     cp ${OUTPUT_FOLDER}/validator${i}/home/config/genesis.json ${OUTPUT_FOLDER}/validator${i}/home/config/genesis.json.bak
     echo $GENESIS | jq > ${OUTPUT_FOLDER}/validator${i}/home/config/genesis.json
 
-    echo "✅ Validator$i prepareation completed"
+    echo "✅ Crypto.org Chain validator$i prepareation completed"
     ((i=i+1))
 done

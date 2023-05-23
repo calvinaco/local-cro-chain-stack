@@ -4,7 +4,7 @@ IFS=$'\n\t'
 set +x
 
 echoerr() {
-    echo "$@" 1>&2;
+    echo "❌ $@" 1>&2;
     echo 1>&2;
     helpFunction 1>&2;
     exit 1;
@@ -70,4 +70,6 @@ fi
 docker run \
     -v ${ASSETS_ROOTDIR}/chain:/app/chain \
     -v ${OUTPUT_FOLDER}/home:/app/home \
-    $DOCKER_IMAGE init $MONIKER --chain-id=$CHAIN_ID > /dev/null 2>&1
+    $DOCKER_IMAGE init $MONIKER --chain-id=$CHAIN_ID
+
+echo "✅ moniker $MONIKER initialized with Chain ID $CHAIN_ID at $OUTPUT_FOLDER"
