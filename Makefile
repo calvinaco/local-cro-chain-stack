@@ -7,8 +7,8 @@ MNEMONICS := "march tourist bless menu tenant element bid say pluck film fever t
 # Skip SSL verification. 1 to skip
 INSECURE_SKIP_SSL_VERIFY := 1
 # TODO: Dynamic validator size
-CRYPTO_ORG_CHAIN_VALIDATOR_SIZE := 5
-CRONOS_VALIDATOR_SIZE := 5
+CRYPTO_ORG_CHAIN_VALIDATOR_SIZE := 2
+CRONOS_VALIDATOR_SIZE := 2
 
 # Constants
 DOCKER = $(shell command -v docker)
@@ -126,11 +126,15 @@ list-account:
 .PHONY: init-config
 init-config:
 	@cp $(CRYPTO_ORG_CHAIN_ASSETS)/home/config/app.toml $(CRYPTO_ORG_CHAIN_ASSETS)/home/config/app.toml.bak
+	@cp $(CRYPTO_ORG_CHAIN_ASSETS)/home/config/config.toml $(CRYPTO_ORG_CHAIN_ASSETS)/home/config/config.toml.bak
 	@sed -i '' "s#^minimum-gas-prices *=.*#minimum-gas-prices = \"$(CRYPTO_ORG_CHAIN_MIN_GAS_PRICES)\"#" ${CRYPTO_ORG_CHAIN_ASSETS}/home/config/app.toml
+	@sed -i '' "s#tcp:\/\/127\.0\.0\.1:26657#tcp:\/\/0\.0\.0\.0:26657#" ${CRYPTO_ORG_CHAIN_ASSETS}/home/config/config.toml
 	@echo "✅ Crypto.org Chain config initialized"; \
 
 	@cp $(CRONOS_ASSETS)/home/config/app.toml $(CRONOS_ASSETS)/home/config/app.toml.bak
+	@cp $(CRONOS_ASSETS)/home/config/config.toml $(CRONOS_ASSETS)/home/config/config.toml.bak
 	@sed -i '' "s#^minimum-gas-prices *=.*#minimum-gas-prices = \"$(CRONOS_MIN_GAS_PRICES)\"#" ${CRONOS_ASSETS}/home/config/app.toml
+	@sed -i '' "s#tcp://127\.0\.0\.1:26657#tcp://0\.0\.0\.0:26657#" ${CRONOS_ASSETS}/home/config/config.toml
 	@echo "✅ Cronos config initialized"; \
 
 .PHONY: unsafe-clear-account
@@ -166,7 +170,7 @@ generate-docker-compose:
 		echo "  crypto-org-chain-validator$$i:" >> docker-compose.yml; \
 		echo "    image: local-cro-chain/crypto-org-chain" >> docker-compose.yml; \
 		echo "    ports:" >> docker-compose.yml; \
-		echo "      - \"$$((26660 + $$i)):26657\"" >> docker-compose.yml; \
+		echo "      - \"$$((26650 + $$i)):26657\"" >> docker-compose.yml; \
 		echo "      - \"$$((1310 + $$i)):1317\"" >> docker-compose.yml; \
 		echo "      - \"$$((9090 + $$i)):9090\"" >> docker-compose.yml; \
 		echo "      - \"$$((8090 + $$i)):26660\"" >> docker-compose.yml; \
@@ -179,7 +183,7 @@ generate-docker-compose:
 		echo "  cronos-validator$$i:" >> docker-compose.yml; \
 		echo "    image: local-cro-chain/cronos" >> docker-compose.yml; \
 		echo "    ports:" >> docker-compose.yml; \
-		echo "      - \"$$((26660 + $(CRYPTO_ORG_CHAIN_VALIDATOR_SIZE) + $$i)):26657\"" >> docker-compose.yml; \
+		echo "      - \"$$((26650 + $(CRYPTO_ORG_CHAIN_VALIDATOR_SIZE) + $$i)):26657\"" >> docker-compose.yml; \
 		echo "      - \"$$((1310 + $(CRYPTO_ORG_CHAIN_VALIDATOR_SIZE) + $$i)):1317\"" >> docker-compose.yml; \
 		echo "      - \"$$((9090 + $(CRYPTO_ORG_CHAIN_VALIDATOR_SIZE) +  $$i)):9090\"" >> docker-compose.yml; \
 		echo "      - \"$$((8090 + $(CRYPTO_ORG_CHAIN_VALIDATOR_SIZE) + $$i)):26660\"" >> docker-compose.yml; \
@@ -193,7 +197,11 @@ generate-docker-compose:
 
 .PHONY: start
 start:
-	@docker-compose up
+	@docker-compose up -d
+
+.PHONY: logs
+logs:
+	@docker-compose logs -f
 
 .PHONY: stop
 stop:

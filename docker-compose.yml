@@ -3,7 +3,7 @@ services:
   crypto-org-chain-validator0:
     image: local-cro-chain/crypto-org-chain
     ports:
-      - "26660:26657"
+      - "26650:26657"
       - "1310:1317"
       - "9090:9090"
       - "8090:26660"
@@ -13,95 +13,32 @@ services:
   crypto-org-chain-validator1:
     image: local-cro-chain/crypto-org-chain
     ports:
-      - "26661:26657"
+      - "26651:26657"
       - "1311:1317"
       - "9091:9090"
       - "8091:26660"
     command: ["start"]
     volumes:
       - ./runtime/crypto-org-chain/validator1:/app
-  crypto-org-chain-validator2:
-    image: local-cro-chain/crypto-org-chain
-    ports:
-      - "26662:26657"
-      - "1312:1317"
-      - "9092:9090"
-      - "8092:26660"
-    command: ["start"]
-    volumes:
-      - ./runtime/crypto-org-chain/validator2:/app
-  crypto-org-chain-validator3:
-    image: local-cro-chain/crypto-org-chain
-    ports:
-      - "26663:26657"
-      - "1313:1317"
-      - "9093:9090"
-      - "8093:26660"
-    command: ["start"]
-    volumes:
-      - ./runtime/crypto-org-chain/validator3:/app
-  crypto-org-chain-validator4:
-    image: local-cro-chain/crypto-org-chain
-    ports:
-      - "26664:26657"
-      - "1314:1317"
-      - "9094:9090"
-      - "8094:26660"
-    command: ["start"]
-    volumes:
-      - ./runtime/crypto-org-chain/validator4:/app
   cronos-validator0:
     image: local-cro-chain/cronos
     ports:
-      - "26665:26657"
-      - "1315:1317"
-      - "9095:9090"
-      - "8095:26660"
-      - "8545:8545"
+      - "26652:26657"
+      - "1312:1317"
+      - "9092:9090"
+      - "8092:26660"
+      - "8542:8545"
     command: ["start"]
     volumes:
       - ./runtime/cronos/validator0:/app
   cronos-validator1:
     image: local-cro-chain/cronos
     ports:
-      - "26666:26657"
-      - "1316:1317"
-      - "9096:9090"
-      - "8096:26660"
-      - "8546:8545"
+      - "26653:26657"
+      - "1313:1317"
+      - "9093:9090"
+      - "8093:26660"
+      - "8543:8545"
     command: ["start"]
     volumes:
       - ./runtime/cronos/validator1:/app
-  cronos-validator2:
-    image: local-cro-chain/cronos
-    ports:
-      - "26667:26657"
-      - "1317:1317"
-      - "9097:9090"
-      - "8097:26660"
-      - "8547:8545"
-    command: ["start"]
-    volumes:
-      - ./runtime/cronos/validator2:/app
-  cronos-validator3:
-    image: local-cro-chain/cronos
-    ports:
-      - "26668:26657"
-      - "1318:1317"
-      - "9098:9090"
-      - "8098:26660"
-      - "8548:8545"
-    command: ["start"]
-    volumes:
-      - ./runtime/cronos/validator3:/app
-  cronos-validator4:
-    image: local-cro-chain/cronos
-    ports:
-      - "26669:26657"
-      - "1319:1317"
-      - "9099:9090"
-      - "8099:26660"
-      - "8549:8545"
-    command: ["start"]
-    volumes:
-      - ./runtime/cronos/validator4:/app
