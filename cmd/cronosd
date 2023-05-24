@@ -53,7 +53,7 @@ if [[ "$1" == "easy-tx" ]]; then
         -v ${RUNTIME}:/app \
         $DOCKER_IMAGE \
         tx \
-        --gas-prices=0.025basecro --gas=auto  --gas-adjustment=1.5 --keyring-backend=test --node=http://127.0.0.1:$HOST_PORT \
+        --gas-prices=5000000000000basecro --gas=auto --gas-adjustment=1.5 --keyring-backend=test --node=http://127.0.0.1:$HOST_PORT \
         $@
 elif [[ "$1" == "tx" ]]; then
     shift 1

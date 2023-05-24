@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+set -euo pipefail
+IFS=$'\n\t'
+
+echoerr() {
+    echo "$@" 1>&2;
+    echo 1>&2;
+    helpFunction 1>&2;
+    exit 1;
+}
+
+helpFunction() {
+    cat << EOF
+Usage: $0 command-and-arguments
+
+Command:
+    bash:       Run interactive bash shell to the hermes container.
+Flags:
+    --help:     Show this help message
+EOF
+    exit 1
+}
+
+DOCKER_IMAGE=local-cro-chain/hermes-cli
+set +e
+NETWORK_ID=$(docker network ls | grep 'local-cro-chain-network' | awk '{ print $1}')
+set -e
+if [[ -z ${NETWORK_ID+x} || "$NETWORK_ID" == "" ]]; then
+    echoerr "docker network local-cro-chain-network not running."
+fi
+
+BASH=0
+while [[ $# > 0 ]]; do
+    case "$1" in
+        --help)
+            helpFunction
+        ;;
+        bash)
+            BASH=1
+            shift 1
+        ;;
+        *)
+            break
+        ;;
+    esac
+done
+
+if [[ $BASH -eq 1 ]]; then
+    set -x
+    docker run --rm -it --network=$NETWORK_ID \
+        -v ./runtime/hermes:/app \
+        --entrypoint /bin/bash \
+        $DOCKER_IMAGE
+else 
+    set -x
+    docker run --rm -it --network=$NETWORK_ID \
+        -v ./runtime/hermes:/app \
+        $DOCKER_IMAGE \
+        $@
+fi

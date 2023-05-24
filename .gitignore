@@ -1,5 +1,6 @@
 assets/
 runtime/
+/docker/certificates.pem
 *.bak
 
 .DS_Store

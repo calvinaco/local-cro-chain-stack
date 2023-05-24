@@ -46,12 +46,12 @@ while [[ $# > 0 ]]; do
             shift 2
         ;;
         *)
-            if [[ $# -ne 2 ]]; then
-                echoerr "Missing version argument"
+            if [[ $# -gt 2 ]]; then
+                echoerr "Too many arguments"
             fi
             BLOCKCHAIN=$1
             VERSION=$2
-            break
+            shift 2
         ;;
     esac
 done

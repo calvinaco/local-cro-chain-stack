@@ -1,4 +1,8 @@
 version: '3.8'
+networks:
+  local-cro-chain-network:
+    name: local-cro-chain-network
+    driver: bridge
 services:
   crypto-org-chain-validator0:
     image: local-cro-chain/crypto-org-chain
@@ -11,6 +15,10 @@ services:
     command: ["start"]
     volumes:
       - ./runtime/crypto-org-chain/validator0:/app
+    networks:
+      - local-cro-chain-network
+    healthcheck:
+      test: ["CMD-SHELL", " netstat -an | grep -q 26657"]
   crypto-org-chain-validator1:
     image: local-cro-chain/crypto-org-chain
     container_name: local-cro-chain-crypto-org-chain-validator1
@@ -22,6 +30,10 @@ services:
     command: ["start"]
     volumes:
       - ./runtime/crypto-org-chain/validator1:/app
+    networks:
+      - local-cro-chain-network
+    healthcheck:
+      test: ["CMD-SHELL", " netstat -an | grep -q 26657"]
   cronos-validator0:
     image: local-cro-chain/cronos
     container_name: local-cro-chain-cronos-validator0
@@ -34,6 +46,10 @@ services:
     command: ["start"]
     volumes:
       - ./runtime/cronos/validator0:/app
+    networks:
+      - local-cro-chain-network
+    healthcheck:
+      test: ["CMD-SHELL", " netstat -an | grep -q 26657"]
   cronos-validator1:
     image: local-cro-chain/cronos
     container_name: local-cro-chain-cronos-validator1
@@ -46,3 +62,22 @@ services:
     command: ["start"]
     volumes:
       - ./runtime/cronos/validator1:/app
+    networks:
+      - local-cro-chain-network
+    healthcheck:
+      test: ["CMD-SHELL", " netstat -an | grep -q 26657"]
+  hermes:
+    image: local-cro-chain/hermes
+    container_name: local-cro-chain-hermes
+    depends_on:
+      crypto-org-chain-validator0:
+        condition: service_healthy
+      cronos-validator0:
+        condition: service_healthy
+    environment:
+      - CRYPTO_ORG_CHAIN_ID=cryptoorgchainlocal-1
+      - CRONOS_CHAIN_ID=cronoslocal_65536-1
+    volumes:
+      - ./runtime/hermes:/app
+    networks:
+      - local-cro-chain-network

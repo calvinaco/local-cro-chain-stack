@@ -1,0 +1,84 @@
+[global]
+log_level = 'info'
+
+[mode]
+[mode.clients]
+enabled = true
+refresh = true
+misbehaviour = false
+
+[mode.connections]
+enabled = false
+
+[mode.channels]
+enabled = false
+
+[mode.packets]
+enabled = true
+clear_interval = 500
+clear_on_start = false
+tx_confirmation = true
+
+[telemetry]
+enabled = true
+host = '0.0.0.0'
+port = 3001
+
+[[chains]]
+id = '{CRYPTO_ORG_CHAIN_ID}'
+rpc_addr = '{CRYPTO_ORG_CHAIN_RPC}'
+grpc_addr = '{CRYPTO_ORG_CHAIN_GRPC}'
+websocket_addr = '{CRYPTO_ORG_CHAIN_WEBSOCKET}'
+rpc_timeout = '20s'
+account_prefix = 'cro'
+key_name = 'key'
+store_prefix = 'ibc'
+default_gas = 800000
+max_gas = 2000000
+gas_price = { price = 0.025, denom = 'basecro' }
+gas_multiplier = 1.5
+max_msg_num = 30
+max_tx_size = 2097152
+clock_drift = '5s'
+max_block_time = '10s'
+trusting_period = '4m'
+trust_threshold = { numerator = '1', denominator = '3' }
+memo_prefix = 'Crypto.org Chain local relayer'
+address_type = { derivation = 'cosmos' }
+
+[chains.packet_filter]
+policy = 'allow'
+list = [
+  ['transfer', 'channel-0'],
+]
+
+[[chains]]
+id = '{CRONOS_CHAIN_ID}'
+rpc_addr = '{CRONOS_RPC}'
+grpc_addr = '{CRONOS_GRPC}'
+websocket_addr = '{CRONOS_WEBSOCKET}'
+rpc_timeout = '20s'
+account_prefix = 'crc'
+key_name = 'key'
+store_prefix = 'ibc'
+default_gas = 600000
+max_gas = 3600000
+gas_price = { price = 6000000000000, denom = 'basecro' }
+gas_multiplier = 1.5
+max_msg_num = 20
+max_tx_size = 2097152
+clock_drift = '5s'
+max_block_time = '10s'
+trusting_period = '4m'
+trust_threshold = { numerator = '1', denominator = '3' }
+memo_prefix = 'Cronos local relayer'
+address_type = { derivation = 'ethermint', proto_type = { pk_type = '/ethermint.crypto.v1.ethsecp256k1.PubKey' } }
+extension_options = [
+  { type = 'ethermint_dynamic_fee', value = '500000000000' },
+]
+
+[chains.packet_filter]
+policy = 'allow'
+list = [
+  ['transfer', 'channel-0'],
+]
