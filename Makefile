@@ -86,7 +86,7 @@ build-hermes-image:
 	@echo "✅ Hermes docker image built"
 
 .PHONY: download-binary
-download-binary: download-crypto-org-chain-binary download-cronos-binary
+download-binary: download-crypto-org-chain-binary download-cronos-binary download-hermes-binary
 
 .PHONY: download-crypto-org-chain-binary
 download-crypto-org-chain-binary:
@@ -276,7 +276,7 @@ init-chain-account: has-docker
 init-hermes-key:
 	@echo $(MNEMONICS) > $(HERMES_ASSETS)/.temp_mnemonic
 	@docker run -v $(HERMES_ASSETS):/app \
-		$(HERMES_DOCKER_IMAGE) \
+		$(HERMES_CLI_DOCKER_IMAGE) \
 		keys add \
 		--chain=$(CRYPTO_ORG_CHAIN_ID) \
 		--mnemonic-file=/app/.temp_mnemonic \
@@ -284,7 +284,8 @@ init-hermes-key:
 	echo "✅ Hermes Crypto.org Chain relayer account initialized"; \
 
 	@docker run -v $(HERMES_ASSETS):/app \
-		$(HERMES_DOCKER_IMAGE) keys add \
+		$(HERMES_CLI_DOCKER_IMAGE) \
+		keys add \
 		--chain=$(CRONOS_CHAIN_ID) \
 		--mnemonic-file=/app/.temp_mnemonic \
 		--hd-path "m/44'/60'/1'/0/0"

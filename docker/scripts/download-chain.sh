@@ -111,7 +111,7 @@ else \
     curl -sLO --fail --show-error $URL; \
 fi || echoerr "Failed to download binary"
 tar -zxvf $FILE > /dev/null 2>&1 || echoerr "Failed to extract binary"
-if [[ -z "./bin" ]]; then 
+if [[ ! -d "./bin" ]]; then 
     echoerr "Missing binary from extracted files"
 fi
 echo "✅ $BLOCKCHAIN $NETWORK v$VERSION binary is ready"

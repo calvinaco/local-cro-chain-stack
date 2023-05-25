@@ -105,7 +105,7 @@ if [[ $TARGET == "source" ]]; then
     fi
     mv ./hermes-${VERSION}/* .
 else
-    if [[ ! -d "./hermes" ]]; then 
+    if [[ ! -f "./hermes" ]]; then 
         echoerr "Missing binary from extracted files"
     fi
 fi

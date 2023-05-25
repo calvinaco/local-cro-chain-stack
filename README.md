@@ -9,6 +9,10 @@ This project helps to quickly created a local CRO family chains stack with custo
 
 This is useful for performing experiments without setting up from scratch nor to interact with the public networks.
 
+## Prerequisites
+
+- Docker
+
 ## Quick Start
 
 ```bash
