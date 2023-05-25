@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+set -euo pipefail
+IFS=$'\n\t'
+
+echoerr() {
+    echo "$@" 1>&2;
+    echo 1>&2;
+    helpFunction 1>&2;
+    exit 1;
+}
+
+helpFunction() {
+    cat << EOF
+Usage: $0
+
+Flags:
+    --help:                         Show this help message.
+    --unsafe-export-private-key:    Export private key in plain text.
+EOF
+    exit 1
+}
+
+CRYPTO_ORG_CHAIN_DOCKER_IMAGE=local-cro-chain/crypto-org-chain
+CRONOS_DOCKER_IMAGE=local-cro-chain/cronos
+
+EXPORT_PRIVATE_KEY=0
+while [[ $# > 0 ]]; do
+    case "$1" in
+        --help)
+            helpFunction
+        ;;
+        --unsafe-export-private-key)
+            EXPORT_PRIVATE_KEY=1
+            shift 1
+        ;;
+        *)
+            echoerr "Unknown option $1"
+        ;;
+    esac
+done
+
+set +e
+NETWORK_ID=$(docker network ls | grep 'local-cro-chain-network' | awk '{ print $1}')
+set -e
+if [[ -z ${NETWORK_ID+x} || "$NETWORK_ID" == "" ]]; then
+    echoerr "docker network local-cro-chain-network not running."
+fi
+
+echo "Crypto.org Chain"
+for account in $(docker run -v ./runtime/crypto-org-chain/validator0:/app \
+    $CRYPTO_ORG_CHAIN_DOCKER_IMAGE \
+    keys list --keyring-backend=test --output=json | jq -c '.[]'); do
+
+    name=$(echo $account | jq -r '.name')
+    address=$(echo $account | jq -r '.address') 
+
+    balance=$(docker run --network=$NETWORK_ID -v ./runtime/crypto-org-chain/validator0:/app \
+        $CRYPTO_ORG_CHAIN_DOCKER_IMAGE \
+        query bank balances $address \
+        --node=http://crypto-org-chain-validator0:26657 \
+        --output=json | jq -r '[.balances[] | .amount+.denom] | join(",")')
+
+    echo "$name $address $balance"
+done
+
+echo
+echo "Cronos"
+for account in $(docker run -v ./runtime/cronos/validator0:/app \
+    $CRONOS_DOCKER_IMAGE \
+    keys list --keyring-backend=test --output=json | jq -c '.[]'); do
+    name=$(echo $account | jq -r '.name')
+    address=$(echo $account | jq -r '.address') 
+
+    balance=$(docker run --network=$NETWORK_ID -v ./runtime/cronos/validator0:/app \
+        $CRONOS_DOCKER_IMAGE \
+        query bank balances $address \
+        --node=http://cronos-validator0:26657 \
+        --output=json | jq -r '[.balances[] | .amount+.denom] | join(",")')
+
+    if [[ $EXPORT_PRIVATE_KEY -eq 1 ]]; then
+        private_key=$(docker run -v ./runtime/cronos/validator0:/app \
+            $CRONOS_DOCKER_IMAGE \
+            keys unsafe-export-eth-key $name \
+            --keyring-backend=test)
+        echo "$name $address $balance $private_key"
+    else
+        echo "$name $address $balance"
+    fi
+done
+

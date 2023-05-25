@@ -46,7 +46,12 @@ while [[ $# > 0 ]]; do
     esac
 done
 
-if [[ "$1" == "easy-tx" ]]; then
+if [[ $# -eq 0 ]]; then
+    set -x
+    docker run -it --network=host \
+        -v ${RUNTIME}:/app \
+        $DOCKER_IMAGE
+elif [[ "$1" == "easy-tx" ]]; then
     shift 1
     set -x
     docker run -it --network=host \

@@ -19,9 +19,23 @@ make start
 
 ## Custom Build and Configuration
 
-Refer to the Makefile header for configurable options. Alternatively, you can run `make init` to initialize the asset and repace the binary and configurations to your desired setup.
+`make all` command perform a series of make actions to create the default chain stack for you. Two of the major steps in the `make all` is `make init` and `make prepare` which are corresponding to the init and prepare Phases.
 
-## Makefile targets
+### Init Phase
+
+`make init`
+
+Init phase creates the default configurations that are commonly shared between all the nodes. i.e. Binary, Configurations, Default accounts and Consensus params. These configurations are usually propagated too all the nodes.
+
+If you want to change the network params, you can modify the assets in `assets` folder accordingly.
+
+### Prepare Phase
+
+`make prepare`
+
+Prepare phase propagates the assets and generate multiple validators and nodes depending on the setup. This phase are usually useful if you want to create distinctions between the nodes for your experiment.
+
+## Makefile Targets
 
 | Target | Phase | Description |
 | --- | --- | --- |
@@ -42,6 +56,7 @@ A few handy commands are provided to help you pre-fill the connections details s
 | ./cmd/chain-maind | Interact with Crypto.org Chain. Behaves similar to `chain-maind` with extra features |
 | ./cmd/cronosd | Interact with Cronos. Behaves similar to `cronosd` with extra features |
 | ./cmd/hermes | Interact with Hermes. Behaves the same as `hermes` |
+| ./cmd/list-account | List all account balances and private keys |
 
 ### Crypto.org Chain and Hermes
 
