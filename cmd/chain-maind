@@ -21,23 +21,29 @@ Command:
 
 Flags:
     --help:     Show this help message
-    --runtime:  The runtime to use under runtime/crypto-org-chain folder. Default: "validator0". Make sure the flag is
-                passed before the command.
+    --runtime:  The runtime identity to use. Default: "validator0". Make sure the flag is passed before the command.
 EOF
     exit 1
 }
 
+SHARED=./assets/shared
+CHAIN_ID=cryptoorgchainlocal-1
 DOCKER_IMAGE=local-cro-chain/crypto-org-chain
-HOST_PORT=$(docker inspect local-cro-chain-crypto-org-chain-validator0 | jq -r '.[0].NetworkSettings.Ports."26657/tcp"[0].HostPort')
+set +e
+NETWORK_ID=$(docker network ls | grep 'local-cro-chain-network' | awk '{ print $1}')
+set -e
+if [[ -z ${NETWORK_ID+x} || "$NETWORK_ID" == "" ]]; then
+    echoerr "docker network local-cro-chain-network not running."
+fi
 
-RUNTIME=./runtime/crypto-org-chain/validator0
+RUNTIME_IDENTITY=validator0
 while [[ $# > 0 ]]; do
     case "$1" in
         --help)
             helpFunction
         ;;
         --runtime)
-            RUNTIME=./runtime/crypto-org-chain/$2
+            RUNTIME_IDENTITY=$2
             shift 2
         ;;
         *)
@@ -45,41 +51,52 @@ while [[ $# > 0 ]]; do
         ;;
     esac
 done
+RUNTIME=./runtime/crypto-org-chain/$RUNTIME_IDENTITY
 
 if [[ $# -eq 0 ]]; then
     set -x
-    docker run -it --network=host \
+    docker run -it --network=$NETWORK_ID \
         -v ${RUNTIME}:/app \
         $DOCKER_IMAGE
 elif [[ "$1" == "easy-tx" ]]; then
     shift 1
     set -x
-    docker run -it --network=host \
+    docker run -it --network=$NETWORK_ID \
         -v ${RUNTIME}:/app \
+        -v ${SHARED}:/shared \
         $DOCKER_IMAGE \
         tx \
-        --gas-prices=0.025basecro --gas=auto  --gas-adjustment=1.5 --keyring-backend=test --node=http://127.0.0.1:$HOST_PORT \
+        --chain-id=$CHAIN_ID \
+        --gas-prices=0.025basecro --gas=auto  --gas-adjustment=1.5 \
+        --keyring-backend=test \
+        --node=http://crypto-org-chain-$RUNTIME_IDENTITY:26657 \
         $@
 elif [[ "$1" == "tx" ]]; then
     shift 1
     set -x
-    docker run -it --network=host \
+    docker run -it --network=$NETWORK_ID \
         -v ${RUNTIME}:/app \
+        -v ${SHARED}:/shared \
         $DOCKER_IMAGE \
-        tx --node=http://127.0.0.1:$HOST_PORT \
+        tx \
+        --chain-id=$CHAIN_ID \
+        --node=http://crypto-org-chain-$RUNTIME_IDENTITY:26657 \
         $@
 elif [[ "$1" == "query" ]]; then
     shift 1
     set -x
-    docker run -it --network=host \
+    docker run -it --network=$NETWORK_ID \
         -v ${RUNTIME}:/app \
+        -v ${SHARED}:/shared \
         $DOCKER_IMAGE \
-        query --node=http://127.0.0.1:$HOST_PORT \
+        query \
+        --node=http://crypto-org-chain-$RUNTIME_IDENTITY:26657 \
         $@
 else
     set -x
-    docker run -it --network=host \
+    docker run -it --network=$NETWORK_ID \
         -v ${RUNTIME}:/app \
+        -v ${SHARED}:/shared \
         $DOCKER_IMAGE \
         $@
 fi

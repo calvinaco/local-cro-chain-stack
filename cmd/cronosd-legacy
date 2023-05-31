@@ -21,29 +21,23 @@ Command:
 
 Flags:
     --help:     Show this help message
-    --runtime:  The runtime identity to use. Default: "validator0". Make sure the flag is passed before the command.
+    --runtime:  The runtime to use under runtime/cronos folder. Default: "validator0". Make sure the flag is
+                passed before the command.
 EOF
     exit 1
 }
 
-SHARED=./assets/shared
-CHAIN_ID=cronoslocal_65536-1
 DOCKER_IMAGE=local-cro-chain/cronos
-set +e
-NETWORK_ID=$(docker network ls | grep 'local-cro-chain-network' | awk '{ print $1}')
-set -e
-if [[ -z ${NETWORK_ID+x} || "$NETWORK_ID" == "" ]]; then
-    echoerr "docker network local-cro-chain-network not running."
-fi
+HOST_PORT=$(docker inspect local-cro-chain-cronos-validator0 | jq -r '.[0].NetworkSettings.Ports."26657/tcp"[0].HostPort')
 
-RUNTIME_IDENTITY=validator0
+RUNTIME=./runtime/cronos/validator0
 while [[ $# > 0 ]]; do
     case "$1" in
         --help)
             helpFunction
         ;;
         --runtime)
-            RUNTIME_IDENTITY=$2
+            RUNTIME=./runtime/cronos/$2
             shift 2
         ;;
         *)
@@ -51,53 +45,41 @@ while [[ $# > 0 ]]; do
         ;;
     esac
 done
-RUNTIME=./runtime/cronos/$RUNTIME_IDENTITY
 
 if [[ $# -eq 0 ]]; then
     set -x
-    docker run -it --network=$NETWORK_ID \
+    docker run -it --network=host \
         -v ${RUNTIME}:/app \
-        -v ${SHARED}:/shared \
         $DOCKER_IMAGE
 elif [[ "$1" == "easy-tx" ]]; then
     shift 1
     set -x
-    docker run -it --network=$NETWORK_ID \
+    docker run -it --network=host \
         -v ${RUNTIME}:/app \
-        -v ${SHARED}:/shared \
         $DOCKER_IMAGE \
         tx \
-        --chain-id=$CHAIN_ID \
-        --gas-prices=5000000000000basecro --gas=auto --gas-adjustment=1.5 \
-        --keyring-backend=test \
-        --node=http://cronos-$RUNTIME_IDENTITY:26657 \
+        --gas-prices=5000000000000basecro --gas=auto --gas-adjustment=1.5 --keyring-backend=test --node=http://127.0.0.1:$HOST_PORT \
         $@
 elif [[ "$1" == "tx" ]]; then
     shift 1
     set -x
-    docker run -it --network=$NETWORK_ID \
+    docker run -it --network=host \
         -v ${RUNTIME}:/app \
-        -v ${SHARED}:/shared \
         $DOCKER_IMAGE \
-        tx \
-        --chain-id=$CHAIN_ID \
-        --node=http://cronos-$RUNTIME_IDENTITY:26657 \
+        tx --node=http://127.0.0.1:$HOST_PORT \
         $@
 elif [[ "$1" == "query" ]]; then
     shift 1
     set -x
-    docker run -it --network=$NETWORK_ID \
+    docker run -it --network=host \
         -v ${RUNTIME}:/app \
-        -v ${SHARED}:/shared \
         $DOCKER_IMAGE \
-        query \
-        --node=http://cronos-$RUNTIME_IDENTITY:26657 \
+        query --node=http://127.0.0.1:$HOST_PORT \
         $@
 else
     set -x
-    docker run -it --network=$NETWORK_ID \
+    docker run -it --network=host \
         -v ${RUNTIME}:/app \
-        -v ${SHARED}:/shared \
         $DOCKER_IMAGE \
         $@
 fi

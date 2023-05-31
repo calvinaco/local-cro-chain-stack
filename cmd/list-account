@@ -16,6 +16,7 @@ Usage: $0
 Flags:
     --help:                         Show this help message.
     --unsafe-export-private-key:    Export private key in plain text.
+    --output-json:                  Output as JSON
 EOF
     exit 1
 }
@@ -24,6 +25,7 @@ CRYPTO_ORG_CHAIN_DOCKER_IMAGE=local-cro-chain/crypto-org-chain
 CRONOS_DOCKER_IMAGE=local-cro-chain/cronos
 
 EXPORT_PRIVATE_KEY=0
+OUTPUT=text
 while [[ $# > 0 ]]; do
     case "$1" in
         --help)
@@ -32,6 +34,10 @@ while [[ $# > 0 ]]; do
         --unsafe-export-private-key)
             EXPORT_PRIVATE_KEY=1
             shift 1
+        ;;
+        --output-json)
+            OUTPUT=json
+            shift
         ;;
         *)
             echoerr "Unknown option $1"
@@ -46,7 +52,8 @@ if [[ -z ${NETWORK_ID+x} || "$NETWORK_ID" == "" ]]; then
     echoerr "docker network local-cro-chain-network not running."
 fi
 
-echo "Crypto.org Chain"
+RESULT=[]
+
 for account in $(docker run -v ./runtime/crypto-org-chain/validator0:/app \
     $CRYPTO_ORG_CHAIN_DOCKER_IMAGE \
     keys list --keyring-backend=test --output=json | jq -c '.[]'); do
@@ -54,22 +61,33 @@ for account in $(docker run -v ./runtime/crypto-org-chain/validator0:/app \
     name=$(echo $account | jq -r '.name')
     address=$(echo $account | jq -r '.address') 
 
-    balance=$(docker run --network=$NETWORK_ID -v ./runtime/crypto-org-chain/validator0:/app \
+    # balances=$(docker run --network=$NETWORK_ID -v ./runtime/crypto-org-chain/validator0:/app \
+    #     $CRYPTO_ORG_CHAIN_DOCKER_IMAGE \
+    #     query bank balances $address \
+    #     --node=http://crypto-org-chain-validator0:26657 \
+    #     --output=json | jq -r '[.balances[] | .amount+.denom] | join(",")')
+    balances=$(docker run --network=$NETWORK_ID -v ./runtime/crypto-org-chain/validator0:/app \
         $CRYPTO_ORG_CHAIN_DOCKER_IMAGE \
         query bank balances $address \
         --node=http://crypto-org-chain-validator0:26657 \
-        --output=json | jq -r '[.balances[] | .amount+.denom] | join(",")')
+        --output=json | jq '.balances')
 
-    echo "$name $address $balance"
+    if [[ $EXPORT_PRIVATE_KEY -eq 1 ]]; then
+        RESULT=$(echo $RESULT | jq \
+            --arg name $name --arg address $address --argjson balances "$balances" \
+            '. += [{chain: "Crypto.org Chain", name: $name, address: $address, balances: $balances, privateKey: ""}]')
+    else
+        RESULT=$(echo $RESULT | jq \
+            --arg name $name --arg address $address --argjson balances "$balances" \
+            '. += [{chain: "Crypto.org Chain", name: $name, address: $address, balances: $balances}]')
+    fi
 done
 
-echo
-echo "Cronos"
 for account in $(docker run -v ./runtime/cronos/validator0:/app \
     $CRONOS_DOCKER_IMAGE \
     keys list --keyring-backend=test --output=json | jq -c '.[]'); do
     name=$(echo $account | jq -r '.name')
-    address=$(echo $account | jq -r '.address') 
+    address=$(echo $account | jq -r '.address')
 
     balance=$(docker run --network=$NETWORK_ID -v ./runtime/cronos/validator0:/app \
         $CRONOS_DOCKER_IMAGE \
@@ -82,9 +100,31 @@ for account in $(docker run -v ./runtime/cronos/validator0:/app \
             $CRONOS_DOCKER_IMAGE \
             keys unsafe-export-eth-key $name \
             --keyring-backend=test)
-        echo "$name $address $balance $private_key"
+        RESULT=$(echo $RESULT | jq \
+            --arg name $name --arg address $address --argjson balances "$balances" --arg private_key $private_key \
+            '. += [{chain: "Cronos", name: $name, address: $address, balances: $balances, privateKey: $private_key}]')
     else
-        echo "$name $address $balance"
+        RESULT=$(echo $RESULT | jq \
+            --arg name $name --arg address $address --argjson balances "$balances" \
+            '. += [{chain: "Cronos", name: $name, address: $address, balances: $balances}]')
     fi
 done
 
+
+if [[ $OUTPUT == "json" ]]; then
+    echo $RESULT
+    exit 0
+fi
+
+for account in $(echo $RESULT | jq -c '.[]'); do
+    chain=$(echo $account | jq -r '.chain')
+    name=$(echo $account | jq -r '.name')
+    address=$(echo $account | jq -r '.address')
+    balances=$(echo $account | jq -r '[.balances[] | .amount+.denom] | join(",")')
+    if [[ $EXPORT_PRIVATE_KEY -eq 1 ]]; then
+        private_key=$(echo $account | jq -r '.private_key')
+        echo "$chain $name $address $balances $private_key"
+    else
+        echo "$chain $name $address $balances"
+    fi
+done

@@ -1,8 +1,9 @@
 # Local Crypto.org Chain and Cronos Stack
 
-> WARNING: All the accounts, keys and mnemonics in this repository are publicly exposed and must not be used in places with monetary value.
+### WARNING: All the accounts, keys and mnemonics in this repository are publicly exposed and must not be used in places with monetary value.
 
-This project helps to quickly created a local CRO family chains stack with customizable configurations:
+
+This project helps to quickly created a local CRO family chains stack using Docker with customizable configurations:
 - Crypto.org Chain
 - Cronos
 - IBC-channel
