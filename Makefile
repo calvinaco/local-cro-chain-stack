@@ -138,12 +138,8 @@ download-hermes-binary:
 		/scripts/download-hermes.sh $(CURL_SSL_FLAG) $(HERMES_VERSION) binary
 	@echo "✅ Hermes source code downloaded"; \
 
-# TODO
-.PHONY: build-binary
-build-binary: has-docker
-
 .PHONY: build-crypto-org-chain-binary
-build-crypto-org-chain-binary:
+build-crypto-org-chain-binary: has-docker
 	@mkdir -p $(GOPATH_ASSETS)
 	@mkdir -p $(CRYPTO_ORG_CHAIN_ASSETS)/bin
 	@if [[ ! -d $(CRYPTO_ORG_CHAIN_ASSETS)/src ]]; then \
@@ -158,7 +154,7 @@ build-crypto-org-chain-binary:
 	@echo "✅ Crypto.org Chain binary is built"
 	
 .PHONY: build-cronos-binary
-build-cronos-binary:
+build-cronos-binary: has-docker
 	@mkdir -p $(GOPATH_ASSETS)
 	@mkdir -p $(CRONOS_ASSETS)/bin
 	@if [[ ! -d $(CRONOS_ASSETS)/src ]]; then \
@@ -173,7 +169,7 @@ build-cronos-binary:
 	@echo "✅ Cronos binary is built"
 
 .PHONY: build-hermes-binary
-build-hermes-binary:
+build-hermes-binary: has-docker
 	@mkdir -p $(HERMES_ASSETS)/bin
 	@if [[ ! -d $(HERMES_ASSETS)/src ]]; then \
 		echo "Hermes source code not found in $(HERMES_ASSETS)/src"; \
@@ -302,6 +298,11 @@ init-chain-account: has-docker
 		$(CRYPTO_ORG_CHAIN_DOCKER_IMAGE) \
 		keys add relayer0 --account=1 \
 		--recover --keyring-backend=test; \
+	yes $(MNEMONICS) | docker run \
+		-i --rm -v $(CRYPTO_ORG_CHAIN_ASSETS):/app \
+		$(CRYPTO_ORG_CHAIN_DOCKER_IMAGE) \
+		keys add relayer-kepalive --account=1 \
+		--recover --keyring-backend=test; \
 
 	@i=0; while [[ $$i -lt $(CRONOS_VALIDATOR_SIZE) ]]; do \
 		yes $(MNEMONICS) | docker run \
@@ -377,10 +378,10 @@ prepare-cronos:
 
 .PHONY: prepare-hermes
 prepare-hermes:
-	@mkdir -p $(HERMES_RUNTIME)/bin
-	@mkdir -p $(HERMES_RUNTIME)/.hermes
 	@cp -r $(HERMES_ASSETS)/bin $(HERMES_RUNTIME)/
 	@cp -r $(HERMES_ASSETS)/.hermes $(HERMES_RUNTIME)/
+	@cp -r $(CRYPTO_ORG_CHAIN_ASSETS)/bin/* $(HERMES_RUNTIME)/bin/
+	@cp -r $(CRYPTO_ORG_CHAIN_ASSETS)/home $(HERMES_RUNTIME)/
 	@echo "✅ Hermes prepared"
 
 .PHONY: genereate-docker-compose

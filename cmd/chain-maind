@@ -53,6 +53,8 @@ while [[ $# > 0 ]]; do
 done
 RUNTIME=./runtime/crypto-org-chain/$RUNTIME_IDENTITY
 
+GAS_PRICES=$(cat $RUNTIME/home/config/app.toml | egrep -o "^minimum-gas-prices[[:space:]]?=[[:space:]]?\"([\.0-9]+basecro).*\"$" | egrep -o '[\.0-9]+basecro')
+
 if [[ $# -eq 0 ]]; then
     set -x
     docker run -it --network=$NETWORK_ID \
@@ -67,7 +69,7 @@ elif [[ "$1" == "easy-tx" ]]; then
         $DOCKER_IMAGE \
         tx \
         --chain-id=$CHAIN_ID \
-        --gas-prices=0.025basecro --gas=auto  --gas-adjustment=1.5 \
+        --gas-prices=$GAS_PRICES --gas=auto  --gas-adjustment=1.5 \
         --keyring-backend=test \
         --node=http://crypto-org-chain-$RUNTIME_IDENTITY:26657 \
         $@

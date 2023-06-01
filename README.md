@@ -40,7 +40,7 @@ If you want to change the network params, you can modify the assets in `assets` 
 
 Prepare phase propagates the assets and generate multiple validators and nodes depending on the setup. This phase are usually useful if you want to create distinctions between the nodes for your experiment.
 
-## Makefile Targets
+## Common Makefile Targets
 
 | Target | Phase | Description |
 | --- | --- | --- |
@@ -51,6 +51,9 @@ Prepare phase propagates the assets and generate multiple validators and nodes d
 | `make stop` | stop | Stop the runtime. |
 | `make restart` | stop | Restart the runtime. |
 | `make logs` | stop | Follow the runtime logs. |
+| `make logs-crypto-org-chain` | stop | Follow the Crypto.org Chain runtime logs. |
+| `make logs-cronos` | stop | Follow the Cronos runtime logs. |
+| `make logs-hermes` | stop | Follow the Hermes runtime logs. |
 
 ## Commands
 
