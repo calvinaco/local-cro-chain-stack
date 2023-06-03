@@ -129,8 +129,8 @@ Two accounts named `relayer-keepalive` are created in the created Crypto.org Cha
 | crypto-org-chain | Crypto.org Chain docker resources |
 | docker | Build docker resources |
 | docker/scripts | Scripts for build toolbox docker image |
-| docker/rust-toolbox.Dockerfile | Build Rust toolbox Dockerfile |
-| docker/go-toolbox.Dockerfile | Build Go toolbox Dockerfile |
+| docker/buildpack.Dockerfile | Base image Dockerfile with necessary build dependencies for all the images |
+| docker/toolbox.Dockerfile | Build toolbox Dockerfile |
 | hermes | Hermes docker resources |
 | runtime/ | Runtime environment of the chain services |
 | scripts/ | Scripts used by Makefile |
