@@ -36,6 +36,7 @@ CRONOS_MIN_GAS_PRICES := 5000000000000basecro,0stake
 
 ASSETS_ROOT := ./assets
 GOPATH_ASSETS := $(ASSETS_ROOT)/go
+SRC_ASSETS := $(ASSETS_ROOT)/src
 CRYPTO_ORG_CHAIN_ASSETS := $(ASSETS_ROOT)/crypto-org-chain
 CRONOS_ASSETS := $(ASSETS_ROOT)/cronos
 HERMES_ASSETS := $(ASSETS_ROOT)/hermes
@@ -44,8 +45,8 @@ CRYPTO_ORG_CHAIN_RUNTIME := $(RUNTIME_ROOT)/crypto-org-chain
 CRONOS_RUNTIME := $(RUNTIME_ROOT)/cronos
 HERMES_RUNTIME := $(RUNTIME_ROOT)/hermes
 
-GO_TOOLBOX_DOCKER_IMAGE := local-cro-chain/go-toolbox
-RUST_TOOLBOX_DOCKER_IMAGE := local-cro-chain/rust-toolbox
+BUILDPACK_DOCKER_IMAGE := local-cro-chain/buildpack
+TOOLBOX_DOCKER_IMAGE := local-cro-chain/toolbox
 CRYPTO_ORG_CHAIN_DOCKER_IMAGE := local-cro-chain/crypto-org-chain 
 CRONOS_DOCKER_IMAGE := local-cro-chain/cronos
 HERMES_DOCKER_IMAGE := local-cro-chain/hermes
@@ -67,19 +68,28 @@ ifndef DOCKER
 endif
 
 .PHONY: build-image
-build-image: build-toolbox-image build-chain-image
+build-image: build-buildpack-image build-toolbox-image build-chain-image build-hermes-image
+
+.PHONY: build-buildpack-image
+build-buildpack-image:
+	@docker build -t $(BUILDPACK_DOCKER_IMAGE) -f ./docker/buildpack.Dockerfile ./docker
+	@echo "✅ buildpack docker image built"
 
 .PHONY: build-toolbox-image
 build-toolbox-image: has-docker 
-	@docker build -t $(GO_TOOLBOX_DOCKER_IMAGE) -f ./docker/go-toolbox.Dockerfile ./docker
-	@echo "✅ Go toolbox docker image built"
-	@docker build -t $(RUST_TOOLBOX_DOCKER_IMAGE) -f ./docker/rust-toolbox.Dockerfile ./docker
-	@echo "✅ Rust toolbox docker image built"
+	@docker build -t $(TOOLBOX_DOCKER_IMAGE) -f ./docker/toolbox.Dockerfile ./docker
+	@echo "✅ toolbox docker image built"
 
 .PHONY: build-chain-image
-build-chain-image:
+build-chain-image: build-crypto-org-chain-image build-cronos-image
+
+.PHONY: build-crypto-org-chain-image
+build-crypto-org-chain-image: has-docker
 	@docker build -t $(CRYPTO_ORG_CHAIN_DOCKER_IMAGE) -f ./crypto-org-chain/Dockerfile .
 	@echo "✅ Crypto.org Chain docker image built"
+
+.PHONY: build-cronos-image
+build-cronos-image: has-docker
 	@docker build -t $(CRONOS_DOCKER_IMAGE) -f ./cronos/Dockerfile .
 	@echo "✅ Cronos docker image built"
 
@@ -94,21 +104,21 @@ download-source: download-crypto-org-chain-source download-cronos-source downloa
 
 .PHONY: download-crypto-org-chain-source
 download-crypto-org-chain-source:
-	@mkdir -p $(CRYPTO_ORG_CHAIN_ASSETS)/ && \
-		cd $(CRYPTO_ORG_CHAIN_ASSETS) && \
-		git clone https://github.com/crypto-org-chain/chain-main src
+	@mkdir -p $(SRC_ASSETS)/ && \
+		cd $(SRC_ASSETS) && \
+		git clone https://github.com/crypto-org-chain/chain-main
 
 .PHONY: download-cronos-source
 download-cronos-source:
-	@mkdir -p $(CRONOS_ASSETS)/ && \
-		cd $(CRONOS_ASSETS) && \
-		git clone https://github.com/crypto-org-chain/cronos src
+	@mkdir -p $(SRC_ASSETS)/ && \
+		cd $(SRC_ASSETS) && \
+		git clone https://github.com/crypto-org-chain/cronos
 
 .PHONY: download-hermes-source
 download-hermes-source:
-	@mkdir -p $(HERMES_ASSETS)
-	docker run -v $(HERMES_ASSETS)/bin:/app \
-		$(GO_TOOLBOX_DOCKER_IMAGE) \
+	@mkdir -p $(SRC_ASSETS)
+	docker run -v $(SRC_ASSETS):/app \
+		$(TOOLBOX_DOCKER_IMAGE) \
 		/scripts/download-hermes.sh $(CURL_SSL_FLAG) $(HERMES_VERSION) source
 
 .PHONY: download-binary
@@ -118,7 +128,7 @@ download-binary: download-crypto-org-chain-binary download-cronos-binary downloa
 download-crypto-org-chain-binary:
 	@mkdir -p $(CRYPTO_ORG_CHAIN_ASSETS)
 	docker run -v $(CRYPTO_ORG_CHAIN_ASSETS)/chain:/app \
-		$(GO_TOOLBOX_DOCKER_IMAGE) \
+		$(TOOLBOX_DOCKER_IMAGE) \
 		/scripts/download-chain.sh $(CURL_SSL_FLAG) crypto-org-chain $(CRYPTO_ORG_CHAIN_VERSION)
 	@echo "✅ Crypto.org Chain source code downloaded"; \
 
@@ -126,7 +136,7 @@ download-crypto-org-chain-binary:
 download-cronos-binary:
 	@mkdir -p $(CRONOS_ASSETS)
 	docker run -v $(CRONOS_ASSETS)/chain:/app \
-		$(GO_TOOLBOX_DOCKER_IMAGE) \
+		$(TOOLBOX_DOCKER_IMAGE) \
 		/scripts/download-chain.sh $(CURL_SSL_FLAG) cronos $(CRONOS_VERSION)
 	@echo "✅ Cronos source code downloaded"; \
 
@@ -134,50 +144,50 @@ download-cronos-binary:
 download-hermes-binary:
 	@mkdir -p $(HERMES_ASSETS)
 	docker run -v $(HERMES_ASSETS)/bin:/app \
-		$(RUST_TOOLBOX_DOCKER_IMAGE) \
+		$(TOOLBOX_DOCKER_IMAGE) \
 		/scripts/download-hermes.sh $(CURL_SSL_FLAG) $(HERMES_VERSION) binary
 	@echo "✅ Hermes source code downloaded"; \
 
 .PHONY: build-crypto-org-chain-binary
 build-crypto-org-chain-binary: has-docker
 	@mkdir -p $(GOPATH_ASSETS)
-	@mkdir -p $(CRYPTO_ORG_CHAIN_ASSETS)/bin
-	@if [[ ! -d $(CRYPTO_ORG_CHAIN_ASSETS)/src ]]; then \
-		echo "Crypto.org Chain source code not found in $(CRYPTO_ORG_CHAIN_ASSETS)/src"; \
+	@mkdir -p $(CRYPTO_ORG_CHAIN_ASSETS)/chain/bin
+	@if [[ ! -d $(SRC_ASSETS)/chain-main ]]; then \
+		echo "Crypto.org Chain source code not found in $(SRC_ASSETS)/chain-main"; \
 	fi
 	@docker run \
-		-v $(CRYPTO_ORG_CHAIN_ASSETS)/src:/app \
+		-v $(SRC_ASSETS)/chain-main:/app \
 		-v $(GOPATH_ASSETS):/go \
-		$(GO_TOOLBOX_DOCKER_IMAGE) \
+		$(TOOLBOX_DOCKER_IMAGE) \
 		make build
-	@cp $(CRYPTO_ORG_CHAIN_ASSETS)/src/build/chain-maind $(CRYPTO_ORG_CHAIN_ASSETS)/bin/
+	@cp $(SRC_ASSETS)/chain-main/build/chain-maind $(CRYPTO_ORG_CHAIN_ASSETS)/chain/bin/
 	@echo "✅ Crypto.org Chain binary is built"
 	
 .PHONY: build-cronos-binary
 build-cronos-binary: has-docker
 	@mkdir -p $(GOPATH_ASSETS)
-	@mkdir -p $(CRONOS_ASSETS)/bin
-	@if [[ ! -d $(CRONOS_ASSETS)/src ]]; then \
-		echo "Crypto.org Chain source code not found in $(CRONOS_ASSETS)/src"; \
+	@mkdir -p $(CRONOS_ASSETS)/chain/bin
+	@if [[ ! -d $(SRC_ASSETS)/cronos ]]; then \
+		echo "Cronos source code not found in $(SRC_ASSETS)/cronos"; \
 	fi
 	@docker run \
-		-v $(CRONOS_ASSETS)/src:/app \
+		-v $(SRC_ASSETS)/cronos:/app \
 		-v $(GOPATH_ASSETS):/go \
-		$(GO_TOOLBOX_DOCKER_IMAGE) \
+		$(TOOLBOX_DOCKER_IMAGE) \
 		make build
-	@cp $(CRONOS_ASSETS)/src/build/cronosd $(CRONOS_ASSETS)/bin/
+	@cp $(SRC_ASSETS)/cronos/build/cronosd $(CRONOS_ASSETS)/chain/bin/
 	@echo "✅ Cronos binary is built"
 
 .PHONY: build-hermes-binary
 build-hermes-binary: has-docker
 	@mkdir -p $(HERMES_ASSETS)/bin
-	@if [[ ! -d $(HERMES_ASSETS)/src ]]; then \
-		echo "Hermes source code not found in $(HERMES_ASSETS)/src"; \
+	@if [[ ! -d $(SRC_ASSETS)/hermes ]]; then \
+		echo "Hermes source code not found in $(SRC_ASSETS)/hermes"; \
 	fi
-	@docker run -v $(HERMES_ASSETS)/src:/app \
-		$(RUST_TOOLBOX_DOCKER_IMAGE) \
+	@docker run -v $(SRC_ASSETS)/hermes:/app \
+		$(TOOLBOX_DOCKER_IMAGE) \
 		cargo build --release --package=ibc-relayer-cli
-	@cp $(HERMES_ASSETS)/src/target/release/hermes $(HERMES_ASSETS)/bin/
+	@cp $(SRC_ASSETS)/hermes/target/release/hermes $(HERMES_ASSETS)/bin/
 	@echo "✅ Hermes binary is built"
 
 .PHONY: init
@@ -301,7 +311,7 @@ init-chain-account: has-docker
 	yes $(MNEMONICS) | docker run \
 		-i --rm -v $(CRYPTO_ORG_CHAIN_ASSETS):/app \
 		$(CRYPTO_ORG_CHAIN_DOCKER_IMAGE) \
-		keys add relayer-kepalive --account=1 \
+		keys add relayer-keepalive --account=2 \
 		--recover --keyring-backend=test; \
 
 	@i=0; while [[ $$i -lt $(CRONOS_VALIDATOR_SIZE) ]]; do \
@@ -329,6 +339,11 @@ init-chain-account: has-docker
 		-i --rm -v $(CRONOS_ASSETS):/app \
 		$(CRONOS_DOCKER_IMAGE) \
 		keys add relayer0 --account=1 \
+		--recover --keyring-backend=test; \
+	yes $(MNEMONICS) | docker run \
+		-i --rm -v $(CRONOS_ASSETS):/app \
+		$(CRONOS_DOCKER_IMAGE) \
+		keys add relayer-keepalive --account=2 \
 		--recover --keyring-backend=test; \
 
 .PHONY: init-hermes-key
@@ -378,10 +393,13 @@ prepare-cronos:
 
 .PHONY: prepare-hermes
 prepare-hermes:
+	@mkdir -p $(HERMES_RUNTIME)/bin
+	@mkdir -p $(HERMES_RUNTIME)/crypto-org-chain
+	@mkdir -p $(HERMES_RUNTIME)/cronos
 	@cp -r $(HERMES_ASSETS)/bin $(HERMES_RUNTIME)/
 	@cp -r $(HERMES_ASSETS)/.hermes $(HERMES_RUNTIME)/
-	@cp -r $(CRYPTO_ORG_CHAIN_ASSETS)/bin/* $(HERMES_RUNTIME)/bin/
-	@cp -r $(CRYPTO_ORG_CHAIN_ASSETS)/home $(HERMES_RUNTIME)/
+	@cp -r $(CRYPTO_ORG_CHAIN_ASSETS)/. $(HERMES_RUNTIME)/crypto-org-chain/
+	@cp -r $(CRONOS_ASSETS)/. $(HERMES_RUNTIME)/cronos/
 	@echo "✅ Hermes prepared"
 
 .PHONY: genereate-docker-compose
@@ -439,8 +457,7 @@ generate-docker-compose:
 	@echo "      cronos-validator0:" >> docker-compose.yml
 	@echo "        condition: service_healthy" >> docker-compose.yml
 	@echo "    environment:" >> docker-compose.yml
-	@echo "      - CRYPTO_ORG_CHAIN_ID=$(CRYPTO_ORG_CHAIN_ID)" >> docker-compose.yml
-	@echo "      - CRONOS_CHAIN_ID=$(CRONOS_CHAIN_ID)" >> docker-compose.yml
+	@echo "      - IBC_TRANSFER_CRON_SCHEDULE=*/1 * * * *" >> docker-compose.yml
 	@echo "    volumes:" >> docker-compose.yml
 	@echo "      - ./runtime/hermes:/app" >> docker-compose.yml
 	@echo "    networks:" >> docker-compose.yml
@@ -519,7 +536,6 @@ unsafe-clear-assets:
 	@rm -rf assets/crypto-org-chain
 	@rm -rf assets/cronos
 	@rm -rf assets/hermes
-	@rm -rf assets/go
 
 .PHONY: unsafe-clear-runtime
 unsafe-clear-runtime:

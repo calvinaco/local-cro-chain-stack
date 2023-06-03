@@ -3,6 +3,8 @@ set -euo pipefail
 IFS=$'\n\t'
 
 CRYPTO_ORG_CHAIN_BLOCK_PENDING=true
+CRYPTO_ORG_CHAIN_ID=$(cat /app/crypto-org-chain/home/config/genesis.json | jq -r '.chain_id')
+CRONOS_CHAIN_ID=$(cat /app/cronos/home/config/genesis.json | jq -r '.chain_id')
 while [[ $CRYPTO_ORG_CHAIN_BLOCK_PENDING == "true" ]]; do
     sleep 1
     CRYPTO_ORG_CHAIN_BLOCK_PENDING=$(curl http://crypto-org-chain-validator0:26657/block?height=1 | jq 'has("error")')
@@ -24,5 +26,9 @@ if [[ $CHANNEL_SIZE -eq 0 ]]; then
         --b-port transfer \
         --new-client-connection --yes
 fi
+
+mkdir -p /app/logs
+echo "$IBC_TRANSFER_CRON_SCHEDULE /scripts/ibc-transfer.sh >> /app/logs/ibc-transfer.log 2>&1" | crontab -
+service cron start
 
 /app/bin/hermes start

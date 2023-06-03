@@ -48,12 +48,15 @@ Prepare phase propagates the assets and generate multiple validators and nodes d
 | `make init` | init | Initialize the chains and hermes in the assets folder. This can be used to bootstrap the assets and ten that you can customize the setup. |
 | `make prepare` | prepare | Prepare the runtime environment including preparing the default accounts with balances and generate the validators details. |
 | `make start` | runtime | Start the runtime by creating and running all the chain nodes and hermes. |
-| `make stop` | stop | Stop the runtime. |
-| `make restart` | stop | Restart the runtime. |
-| `make logs` | stop | Follow the runtime logs. |
-| `make logs-crypto-org-chain` | stop | Follow the Crypto.org Chain runtime logs. |
-| `make logs-cronos` | stop | Follow the Cronos runtime logs. |
-| `make logs-hermes` | stop | Follow the Hermes runtime logs. |
+| `make stop` | runtime | Stop the runtime. |
+| `make restart` | runtime | Restart the runtime. |
+| `make logs` | runtime | Follow the runtime logs. |
+| `make logs-crypto-org-chain` | runtime | Follow the Crypto.org Chain runtime logs. |
+| `make logs-cronos` | runtime | Follow the Cronos runtime logs. |
+| `make logs-hermes` | runtime | Follow the Hermes runtime logs. |
+| `make tendermint-unsafe-reset-all` | N/A | This action is non-reversible. Reset chain runtime to initial state. |
+| `make unsafe-clear-assets` | N/A | This action is non-reversible. Clear assets folder except `go/`, `shared/` and `src/` folders inside. |
+| `make unsafe-clear-runtime` | N/A | This action is non-reversible. Clear runtime folder. |
 
 ## Commands
 
@@ -66,6 +69,38 @@ A few handy commands are provided to help you pre-fill the connections details s
 | ./cmd/hermes | Interact with Hermes. Behaves the same as `hermes` |
 | ./cmd/list-account | List all account address, balances and private key |
 
+## System Design and Defaults
+
+This section covers the system design highlights and some of default values that you may be interested to modify.
+
+### Minimum Gas Prices
+
+#### Defaults
+
+The default minimum gas prices of each chain is configured as below
+
+| Chain | Minimum Gas Prices |
+| --- | --- |
+| Crypto.org Chain | 0.025basecro |
+| Cronos | 5000basecro,0stake |
+
+#### How to change
+
+To change the minimum gas prices, there are two places you have to modify:
+
+- Chain configuration
+  - `assets/crypto-org-chain/home/config/app.toml` and/or `assets/cronos/home/config/app.toml`
+- Hermes configuration
+  - `assets/hermes/.hermes/config.toml`
+
+### Hermes
+
+#### IBC Channel Keep Alive Cron Job
+
+To keep the IBC client active, an IBC transfer cron job is executed every regular interval. This interval can be configured in the `docker-compose.yml`. Default is to run every 1 minute.
+
+Two accounts named `relayer-keepalive` are created in the created Crypto.org Chain and Cronos. IBC transfer cron job make uses of these accounts and transfer CRO to each other and trigger the client updates to keep the channel alive.
+
 ## Project Structure
 
 | Folder | Description |
@@ -74,17 +109,17 @@ A few handy commands are provided to help you pre-fill the connections details s
 | assets/cronos | Cronos assets |
 | assets/cronos/chain | Cronos binary |
 | assets/cronos/home | Cronos initialized home folder. This will be copied to runtime on `make prepare` |
-| assets/cronos/src | Cronos source code for custom build |
 | assets/crypto-org-chain | Crypto.org Chain assets |
 | assets/crypto-org-chain/chain | Crypto.org Chain binary |
 | assets/crypto-org-chain/home | Crypto.org Chain initialized home folder. This will be copied to runtime on `make prepare` |
-| assets/crypto-org-chain/src | Crypto.org Chain source code for custom build |
 | assets/go | Cache folder for go build dependencies |
 | assets/hermes | Hermes assets |
 | assets/hermes/.hermes | Hermes initialized home folder. This will be copied to runtime on `make prepare` |
 | assets/hermes/bin | Hermes binary |
-| assets/hermes/src | Hermes source code for custom build |
 | assets/shared | Shared folder that is mounted as `/shared` to the container when running `./cmd/chain-maind` and `./cmd/cronosd` |
+| assets/src/cronos | Cronos source code for custom build |
+| assets/src/crypto-org-chain | Crypto.org Chain source code for custom build |
+| assets/src/hermes | Hermes source code for custom build |
 | cmd/ | Contains commands to interact with the docker service as if running a local command |
 | cmd/chain-maind | An easy chain-maind CLI that has access to the local network |
 | cmd/cronosd | An easy cronods CLI that has access to the local network |

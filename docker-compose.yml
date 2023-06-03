@@ -75,8 +75,7 @@ services:
       cronos-validator0:
         condition: service_healthy
     environment:
-      - CRYPTO_ORG_CHAIN_ID=cryptoorgchainlocal-1
-      - CRONOS_CHAIN_ID=cronoslocal_65536-1
+      - IBC_TRANSFER_CRON_SCHEDULE=*/1 * * * *
     volumes:
       - ./runtime/hermes:/app
     networks:
