@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM local-cro-chain/buildpack
 
 WORKDIR /app
 
